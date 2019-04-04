@@ -1,0 +1,14 @@
+{
+  "name": "s-chat",
+  "version": "1.0.0",
+  "description": "Secure command line chat application",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Matt Bechtel, Collin Vincent",
+  "license": "ISC",
+  "dependencies": {
+    "cli": "cli/",
+    "logger": "logger/"
+  }
+}
