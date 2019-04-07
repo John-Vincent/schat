@@ -1,0 +1,16 @@
+{
+  "name": "logger",
+  "version": "1.0.0",
+  "description": "Logger for nodeJS",
+  "main": "logger.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Matt Bechtel | mattbechtel123@gmail.com",
+  "license": "ISC",
+  "repository": "https://github.com/mattbechtel/logger",
+  "dependencies": {
+    "fs": "0.0.1-security",
+    "path": "^0.12.7"
+  }
+}

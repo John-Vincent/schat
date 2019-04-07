@@ -8,7 +8,8 @@
   "author": "Matt Bechtel, Collin Vincent",
   "license": "ISC",
   "dependencies": {
-    "cli": "cli/",
-    "logger": "logger/"
+    "cli": "../cli/",
+    "logger": "../logger/",
+    "readline": "^1.3.0"
   }
 }
