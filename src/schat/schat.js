@@ -39,7 +39,7 @@ const helpRunner = function(input)
 /*set up the 'CLI'*/
 let cliMap = new Map();
 let programName = "schat";
-let prompt = programName + " > ";
+let prompt = programName + "> ";
 cliMap.set("add", addRunner);
 cliMap.set("--help", helpRunner);
 let cli = new CLI(programName, prompt, cliMap);

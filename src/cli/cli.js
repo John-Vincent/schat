@@ -3,7 +3,7 @@ const readline = require('readline');
 
 /** 
  * Constructor for the CLI object. The program name should be passed as the 
- * first parameter, and the cliMap as the second. The cliMap should be a 
+ * first parameter, the prompt as the second  and the cliMap as the third. The cliMap should be a 
  * map of command strings to their runners (functions to be executed if the matching command
  * is found). 
  * @author    Matt Bechtel | mbechtel@iastate.edu 
