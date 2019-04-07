@@ -85,6 +85,11 @@ CLI.prototype.start = function()
         logger.info("Read input: " + line, __filename);
         this.parseAndRun(line);
         this.io.prompt();
+    })
+    .on('close', () => 
+    {
+        console.log('\n\nGoodbye.');
+        process.exit(0);
     });
 }
 
