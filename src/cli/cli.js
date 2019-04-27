@@ -30,11 +30,7 @@ class CLI
         this.programName = programName;
         this.cliMap = cliMap;
         this.prompt = prompt ? prompt : this.programName + " > ";
-        this.io = readline.createInterface(
-            {
-                input : process.stdin,
-                output : process.stdout
-            });
+        this.shell = false;
     }
 
 
@@ -51,24 +47,51 @@ class CLI
      */
     parseAndRun(input)
     {
-        let parsedInput = input.split(" "); 
-        let runner = this.cliMap.get(parsedInput[0]);
+        if(input.length == 0)
+        {
+            let errMsg = "No arguments, try --help";
+            logger.error(errMsg, __filename);
 
-        if(parsedInput.length > 0 && runner)
+            if(this.shell)
+            {
+                this.print(errMsg);
+            }
+            else 
+            {
+                console.error(errMsg);
+            }
+
+            return false;
+        }
+
+        if(!Array.isArray(input))
+        {
+            input = input.split(" "); 
+        }
+
+        let runner = this.cliMap.get(input[0]);
+
+        if(input.length > 0 && runner)
         {
             logger.info("Parsing input and executing command", __filename);
-            runner(parsedInput);
+            runner(input, this);
             return true;
-        }
-        else if(parsedInput.length == 0)
-        {
-            logger.error("Input is empty, null, or undefined", __filename);
-            return false;
         }
         else if(!runner)
         {
-            logger.error("Input has no corresponding runner", __filename);
-            this.print(parsedInput[0] + " is not a command, try --help");
+            let errMsg = input[0] + " is not a command, try --help";
+            
+            logger.error(errMsg, __filename);
+
+            if(this.shell)
+            {
+                this.print(errMsg);
+            }
+            else 
+            {
+                console.error(errMsg);
+            }
+
             return false;
         }
     }
@@ -80,6 +103,12 @@ class CLI
      */
     start()
     {
+        this.shell = true;
+        this.io = readline.createInterface(
+            {
+                input : process.stdin,
+                output : process.stdout
+            });
         this.io.setPrompt(this.prompt);
         this.io.prompt();
         
