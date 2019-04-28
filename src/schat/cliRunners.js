@@ -6,10 +6,11 @@ const CLIRunners = new Map();
 
 /** 
  * Starts chat with given IP:PORT
- * Runner for the 'add user to chat' function of schat. 
+ * Runner for 'start-chat'. Starts an schat connection with the given IP and port
  * @author    Matt Bechtel | mbechtel@iastate.edu 
  * @date      2019-04-06 21:28:31 
- * @param     {String[]} input | parsed input, placed into string[]
+ * @param     {String[]} input | parsed input, place into string[]
+ * @param     {CLI} cli | an instance of cli to be used
  */
 CLIRunners.set("start-chat", (input, cli) =>
 {
@@ -54,11 +55,25 @@ CLIRunners.set("start-chat", (input, cli) =>
     cli.print("Adding " + address[0] + ":" + remotePort + " to chat");
 });
 
+/** 
+ * Runner to send a message, this will passed to the cli as the runner to use when sending a message
+ * @author    Matt Bechtel | mbechtel@iastate.edu 
+ * @date      2019-04-27 22:22:35    
+ * @param     {String[]} input | parsed input, place into string[]
+ * @param     {CLI} cli | an instance of cli to be used
+ */
 CLIRunners.set("send-message", (input, cli) =>
 {
     network.send(input);
 });
 
+/** 
+ * Runner for the 'keys' commands. This runner will dispatch to the correct runner for the given key functionality
+ * @author    Matt Bechtel | mbechtel@iastate.edu 
+ * @date      2019-04-27 22:23:33    
+ * @param     {String[]} input | parsed input, place into string[]
+ * @param     {CLI} cli | an instance of cli to be used
+ */
 CLIRunners.set("keys", (input, cli) =>
 {
     let option = input.slice(1, input.length);
@@ -74,6 +89,14 @@ CLIRunners.set("keys", (input, cli) =>
     }    
 });
 
+/** 
+ * Runner for importing keys passed by the user as filepaths.
+ * This runner will look for flags --priv, --pub, --fpub, with the file paths following the flags (ex: --priv ~/.ssh/id_rsa)
+ * @author    Matt Bechtel | mbechtel@iastate.edu 
+ * @date      2019-04-27 22:24:30 
+ * @param     {String[]} input | parsed input, place into string[]
+ * @param     {CLI} cli | an instance of cli to be used
+ */
 CLIRunners.set("import", (input, cli) =>
 {
     let keys = {};
@@ -105,6 +128,13 @@ CLIRunners.set("import", (input, cli) =>
     }
 })
 
+/** 
+ * Runner to generate new keys and save them to the schat directory
+ * @author    Matt Bechtel | mbechtel@iastate.edu 
+ * @date      2019-04-27 22:25:42 
+ * @param     {String[]} input | parsed input, place into string[]
+ * @param     {CLI} cli | an instance of cli to be used
+ */
 CLIRunners.set("generate", (input, cli) => 
 {
     cli.print("Generating keys");
@@ -118,6 +148,7 @@ CLIRunners.set("generate", (input, cli) =>
  * @author    Matt Bechtel | mbechtel@iastate.edu 
  * @date      2019-04-06 21:49:55 
  * @param     {String[]} input | parsed input, place into string[]
+ * @param     {CLI} cli | an instance of cli to be used
  */
 CLIRunners.set("--help", (input, cli) =>
 {
