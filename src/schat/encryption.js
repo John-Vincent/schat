@@ -66,6 +66,23 @@ encryption.generateKeys = function()
     });
 }
 
+encryption.generateKeysAndSave = () =>
+{
+    return new Promise((resolve, reject) =>
+    {
+        return encryption.generateKeys()
+            .then(() =>
+            {
+                return encryption.saveKeys();
+            });
+    });
+}
+
+encryption.saveKeys = () =>
+{
+    //TODO
+}
+
 encryption.isSessionSet = function()
 {
     return session_key != undefined && session_key.length==24;

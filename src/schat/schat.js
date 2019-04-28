@@ -16,7 +16,7 @@ class SChat
 
     runCommand(command)
     {
-        this.cli.parseAndRun(command);
+        this.cli.parseAndRun(command, true);
     }
 }
 

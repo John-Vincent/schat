@@ -45,8 +45,10 @@ class CLI
      * @param     {String} input 
      * @return    {Boolean}    | true if runner exists, false if not
      */
-    parseAndRun(input)
+    parseAndRun(input, split)
     {
+        let unsplitInput = input;
+
         if(input.length == 0)
         {
             let errMsg = "No arguments, try --help";
@@ -71,10 +73,16 @@ class CLI
 
         let runner = this.cliMap.get(input[0]);
 
-        if(input.length > 0 && runner)
+        if(split && input.length > 0 && runner)
         {
             logger.info("Parsing input and executing command", __filename);
             runner(input, this);
+            return true;
+        }
+        else if(!split && unsplitInput.length > 0 && runner)
+        {
+            logger.info("Parsing input and executing command", __filename);
+            runner(unsplitInput.slice("send-message ".length, unsplitInput.length), this);
             return true;
         }
         else if(!runner)
@@ -101,7 +109,7 @@ class CLI
      * @author    Matt Bechtel | mbechtel@iastate.edu 
      * @date      2019-04-06 21:34:24    
      */
-    start()
+    start(sendMessageRunnerName)
     {
         this.shell = true;
         this.io = readline.createInterface(
@@ -115,7 +123,13 @@ class CLI
         this.io.on('line', (line) => 
         {
             logger.info("Read input: " + line, __filename);
-            this.parseAndRun(line);
+
+            if(line != '--help' && sendMessageRunnerName)
+            {
+                line = sendMessageRunnerName + " " + line;
+            }
+
+            this.parseAndRun(line, false);
             this.io.prompt();
         })
         .on('close', () => 
@@ -136,9 +150,23 @@ class CLI
      */
     print(str)
     {
-        console.log(str + "\n");
-        this.io.prompt();
+        console.log(str);
+
+        if(this.shell)
+        {
+            this.io.prompt();
+        }
     }    
+
+    printError(str)
+    {
+        console.error(str);
+
+        if(this.shell)
+        {
+            this.io.prompt();
+        }
+    }
 }
 
 
