@@ -22,43 +22,36 @@ CLIRunners.set("start-chat", (input, cli) =>
         cli.printError("An address to connect to must be specified, see '--help'");
         return;
     }
-    else if(address.length != 2)
+
+    let remotePort = address[1] != undefined ? address[1] : 4567;
+    let localPort = 4567;
+
+    let receptionCallback = (msg) =>
     {
-        cli.printError("Address must be in the form of IP:PORT");
-        return;
+        cli.print("\nMessage from peer: " + msg);
     }
-    
-    if(address.length == 2)
+
+    if(input[2] == "-p" && input[3])
     {
-        let remotePort = address[1];
-        let localPort = 4567;
+        localPort = parseInt(input[3]);
+    }
 
-        let receptionCallback = (msg) =>
+    var options = {local_port: localPort, remote_port: remotePort, remote_address: address[0], callback: receptionCallback, closeCallback: ()=>{console.log('Peer disconnected...\nGoodbye.'); process.exit(0)}};
+
+    //This needs to be changed to load in existing keys, that should be done via 
+    //scanning the ~/.schat directory for them 
+    encryption.generateKeys()
+        .then(()=>
         {
-            cli.print("Message from peer: " + msg);
-        }
-
-        if(input[2] == "-p" && input[3])
-        {
-            localPort = parseInt(input[3]);
-        }
-
-        var options = {local_port: localPort, remote_port: remotePort, remote_address: address[0], callback: receptionCallback, closeCallback: ()=>{console.log('Peer disconnected');}};
-
-        //This needs to be changed to load in existing keys, that should be done via 
-        //scanning the ~/.schat directory for them 
-        encryption.generateKeys()
-            .then(()=>
+            return network.open(options).then(() => 
             {
-                return network.open(options).then(() => 
-                {
-                    cli.start("send-message");
-                });
-            })
-            .catch(cli.printError);
-    }
+                cli.start("send-message");
+            });
+        })
+        .catch(cli.printError);
+
     //here should be the logic for adding a user to the chat
-    cli.print("Adding " + input[1] + " to chat");
+    cli.print("Adding " + address[0] + ":" + remotePort + " to chat");
 });
 
 CLIRunners.set("send-message", (input, cli) =>
@@ -146,7 +139,7 @@ CLIRunners.set("--help", (input, cli) =>
                     spacing + spacing + spacing + "  (Example: schat keys import --priv ~/.ssh/id_rsa --pub ~/.ssh/id_rsa.pub --fpub ~/.ssh/alices_key.pub)\n" + 
         spacing + "start-chat\n" + 
         spacing + spacing + "'-p' can be used to specify the port that schat runs on, (example: schat start-chat 127.0.0.1:3000 -p 4567, here schat will serve on port 4567)\n" + 
-        spacing + spacing + "IP:PORT. Example (schat start-chat 127.0.0.1:8080). \n" + spacing + spacing + "This will start an schat connection with the specified address. This will start the schat shell.");        
+        spacing + spacing + "IP:PORT or IP (this will try and connect to IP:4567). Example (schat start-chat 127.0.0.1:8080). \n" + spacing + spacing + "This will start an schat connection with the specified address. This will start the schat shell.");        
 
 });
 

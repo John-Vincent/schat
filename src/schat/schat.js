@@ -1,11 +1,8 @@
-const readline = require('readline');
-const logger = require('logger');
 const CLI = require('cli');
 const CLIRunners = require('./cliRunners');
 
 let programName = "schat";
 let prompt = programName + "> ";
-const cliRunnerMap = new Map();
 
 class SChat 
 {
