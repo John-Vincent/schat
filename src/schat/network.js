@@ -137,6 +137,7 @@ function initalizeConnection(options)
                         }
                         break;
                     case init_packet_types.sessionSegment:
+                        data.key = encryption.decrypt('private', data.key);
                         if(encryption.setSessionSegment(data.key))
                         {
                             testSessionKey();
@@ -271,6 +272,7 @@ function keyRequest()
 function sessionSegment()
 {
     encryption.generateAESSegment().then((segment)=>{
+        segment = encryption.encrypt('foreign', segment);
         socket.write(JSON.stringify({
             type: init_packet_types.sessionSegment,
             key: segment
