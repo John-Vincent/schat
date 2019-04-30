@@ -155,6 +155,8 @@ encryption.encrypt = function(type, message)
             ans = cipher.update(message, 'utf8', 'hex') + cipher.final('hex');
             return ans;
             break;
+        default:
+            throw new Error('encryption of type ' + type + ' is not supported');
     }
 }
 
@@ -183,6 +185,8 @@ encryption.decrypt = function(type, message)
             ans = decipher.update(message, 'hex', 'utf8') + decipher.final('utf8');
             return ans;
             break;
+        default:
+            throw Error('decryption of type ' + type + ' is not supported');
     }
 }
 
