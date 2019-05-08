@@ -8,9 +8,5 @@
   },
   "author": "Matt Bechtel | mattbechtel123@gmail.com",
   "license": "ISC",
-  "repository": "https://github.com/mattbechtel/logger",
-  "dependencies": {
-    "fs": "0.0.1-security",
-    "path": "^0.12.7"
-  }
+  "repository": "https://github.com/mattbechtel/logger"
 }
