@@ -64,11 +64,20 @@ network.open = function(options)
     });
 }
 
+/**
+ *  ends the socket connection.
+ *  assumes the socket is set up.
+ */
 network.close = function()
 {
     socket.end();
 }
 
+
+/**
+ *  encrypts and sends the data
+ *  over the socket connection
+ */
 network.send = function(data)
 {
     logger.debug('SENDING DATA: ')
@@ -78,6 +87,16 @@ network.send = function(data)
     socket.write(encrypted);
 }
 
+/**
+ *  returns a promise as well as a callback.
+ *  the callback will be set up as the data
+ *  handler on the tcp connection. This
+ *  callback will then run through the
+ *  logic to initalize the secure connection
+ *  between the peers and then resolves the
+ *  promise when the connect has been set up
+ *  and tested.
+ */
 function initalizeConnection(options)
 {
     var init, keys_ready = false; 
@@ -94,6 +113,7 @@ function initalizeConnection(options)
             {
                 data = JSON.parse(data);
                 logger.debug(data);
+                //handle the different packet types received
                 switch(data.type)
                 {
                     case init_packet_types.keyRequest:
@@ -183,6 +203,12 @@ function initalizeConnection(options)
     return {promise: promise, callback: init};
 }
 
+/**
+ *  after the connection is set up this is set as the 
+ *  data event handler on the TCP socket. It's job
+ *  is to decrypt the message then call the user
+ *  configured callback with the unencrypted message.
+ */
 function receiveMessage(callback)
 {
     return (data)=>{
@@ -195,6 +221,9 @@ function receiveMessage(callback)
     }
 }
 
+/**
+ *  creates a server to listen for incoming connections
+ */
 function make_server(callback, options)
 {
     return () =>
@@ -208,6 +237,11 @@ function make_server(callback, options)
     }
 }
 
+/**
+ *  a callback for when the server gets a connection request.
+ *  this functino just makes sure that the person connecting
+ *  has the address that the user was trying to connect to.
+ */
 function accept_connection(callback, address)
 {
     return sock =>
@@ -236,6 +270,13 @@ function accept_connection(callback, address)
     }
 }
 
+/**
+ *  This funciton just quickly attaches handlers with
+ *  all the events configured to use default handlers.
+ *  this way I can remove all handlers then call this function
+ *  and not have to attach all of the handlers in each location
+ *  that I remove them.
+ */
 function attach_handlers(sock, options)
 {
     if(!options)
@@ -249,11 +290,17 @@ function attach_handlers(sock, options)
         sock.on('connection', options.connection);
 }
 
+/**
+ *  default handler for the connection closed event
+ */
 function default_close_handler()
 {
     console.log('connection has been closed');
 }
 
+/**
+ *  function that writes the verifyKey request to the peer.
+ */
 function verifyKey()
 {
     var string = Math.random().toString(36).substring(2,15) + Math.random.toString(36).substring(2,15);
@@ -264,11 +311,19 @@ function verifyKey()
     }));
 }
 
+/**
+ *  function that writes a keyRequest
+ *  message to the peer.
+ */
 function keyRequest()
 {
     socket.write(JSON.stringify({type: init_packet_types.keyRequest}));
 }
 
+/**
+ *  generates a aes key segment then sends it to the
+ *  peer.
+ */
 function sessionSegment()
 {
     encryption.generateAESSegment().then((segment)=>{
@@ -280,6 +335,10 @@ function sessionSegment()
     });
 }
 
+/**
+ *  tells the peer that all of your
+ *  rsa keys are ready.
+ */
 function keysReady()
 {
     socket.write(JSON.stringify({
@@ -287,6 +346,11 @@ function keysReady()
     }));
 }
 
+/**
+ *  tells the user if they correctly
+ *  encrypted a message with your public key.
+ *  argument is verifyKey request received
+ */
 function verifyAnswer(data)
 {
     socket.write(JSON.stringify({
@@ -295,6 +359,9 @@ function verifyAnswer(data)
     }));
 }
 
+/**
+ *  Sends your public key to the peer
+ */
 function keyAnswer()
 {
     socket.write(JSON.stringify({
@@ -303,6 +370,10 @@ function keyAnswer()
     }));
 }
 
+/**
+ *  generates a random string and then encrypts it with the session
+ *  key. then sends that to the peer to test.
+ */
 function testSessionKey()
 {
     var string = Math.random().toString(36).substring(2,15) + Math.random.toString(36).substring(2,15);
@@ -313,6 +384,10 @@ function testSessionKey()
     }));
 }
 
+/**
+ *  responds if the session key
+ *  could correctly decrypt the message
+ */
 function sessionResponse(ans)
 {
     socket.write(JSON.stringify({

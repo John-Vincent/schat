@@ -17,6 +17,14 @@ var foreign_set = false;
 var save_foreign = false;
 var session_set = false;
 
+/**
+ *  This function can be called with an optional
+ *  argument that contains optional alternative file
+ *  paths for the 3 different keys. If a path is not 
+ *  set then a default path will be attempted. 
+ *  returns a Promise that will resolve with an array 
+ *  of errors loading files if any occur.
+ */
 encryption.setKeys= function(keys)
 {
     var dir_check, local, foreign;
@@ -50,6 +58,11 @@ encryption.setKeys= function(keys)
     return Promise.all([local, foreign]);
 }
 
+/**
+ *  This function generates a public and private
+ *  RSA key pair to be used for the current local 
+ *  key pair.
+ */
 encryption.generateKeys = function()
 {
     return new Promise((resolve, reject)=>
@@ -68,6 +81,11 @@ encryption.generateKeys = function()
     });
 }
 
+/**
+ *  This functin is a generates public and private keys
+ *  and then saves them to either the default file path or 
+ *  the path provided in the optional argument
+ */
 encryption.generateKeysAndSave = (paths) =>
 {
     if(!paths)
@@ -87,6 +105,11 @@ encryption.generateKeysAndSave = (paths) =>
     });
 }
 
+/**
+ *  This function will save the currently loaded local
+ *  keys and set up the foreign key to be saved 
+ *  after it has been received over the network connection.
+ */
 encryption.saveKeys = (paths) =>
 {
     var priv, pub, fpub;
@@ -123,11 +146,19 @@ encryption.saveKeys = (paths) =>
     });
 }
 
+/**
+ *  returns if the session key is ready to be transformed into an actual 
+ *  cipher object.
+ */
 encryption.isSessionSet = function()
 {
     return session_key != undefined && session_key.length==24;
 }
 
+/**
+ *  sets the foreign key and if configured saves it
+ *  to a file.
+ */
 encryption.setForeignKey = function(keyString)
 {
     foreign_key = crypto.createPublicKey(keyString);
@@ -141,16 +172,28 @@ encryption.setForeignKey = function(keyString)
     }
 }
 
+/**
+ *  returns true if the foreign key has been set,
+ *  and false if it has not been
+ */
 encryption.isForeignSet = function()
 {
     return foreign_set;
 }
 
+/**
+ *  gets the public key string for sending
+ *  over the network.
+ */
 encryption.getPublicKey = function()
 {
     return public_key.export({type: 'pkcs1', format:'pem'});
 }
 
+/**
+ *  sets a section of the session key and then creates the cipher
+ *  if both sections have been set.
+ */
 encryption.setSessionSegment = function(segment)
 {
     var ready = false, buffer;
@@ -162,6 +205,10 @@ encryption.setSessionSegment = function(segment)
     return ready;
 }
 
+/**
+ *  creates a half of an AES key.
+ *  returns the half as a string
+ */
 encryption.generateAESSegment = function()
 {
     return new Promise((resolve,reject)=>{
@@ -180,6 +227,12 @@ encryption.generateAESSegment = function()
     });
 }
 
+/**
+ *  encrypts a given message with either the
+ *  private, public, foreign, or session key
+ *  based on the type arguement. returns the
+ *  encrypted string/Buffer
+ */
 encryption.encrypt = function(type, message)
 {
     var ans, buffer = Buffer.from(message);
@@ -207,6 +260,12 @@ encryption.encrypt = function(type, message)
     }
 }
 
+/**
+ *  Decrypts a given message with either the
+ *  private, public, foreign, or session key
+ *  based on the type arguement. returns the
+ *  unencrypted string/Buffer.
+ */
 encryption.decrypt = function(type, message)
 {
     var ans, buffer;
@@ -273,6 +332,10 @@ function check_directory()
     });
 }
 
+/**
+ *  creates a new cipher and decipher to be used
+ *  with the aes key.
+ */
 function createCiphers()
 {
     buffer = Buffer.from(session_key, 'hex');
@@ -280,6 +343,10 @@ function createCiphers()
     decipher = crypto.createDecipheriv('aes-256-ctr', buffer, Buffer.alloc(16, 0));
 }
 
+/**
+ *  attempts to read the private key and save the resulting 
+ *  key object in a global variable.
+ */
 function initPrivateKey(path)
 {
     return ()=>
@@ -297,6 +364,10 @@ function initPrivateKey(path)
     }
 }
 
+/**
+ *  attempts to read the public key file and save the resulting
+ *  key object in a global variable.
+ */
 function initPublicKey(path)
 {
     return (err)=>
@@ -316,6 +387,11 @@ function initPublicKey(path)
     }
 }
 
+/**
+ *  attempts to read the foreign key from a file
+ *  and save the resulting key object in a global
+ *  variable.
+ */
 function initForeignKeys(path)
 {
     return ()=>
@@ -334,6 +410,12 @@ function initForeignKeys(path)
     }
 }
 
+/**
+ *  writes a string/buffer to a file path.
+ *  returns a promise throws a rejection
+ *  when the fs function callback has
+ *  an error.
+ */
 function writeFile(path, data)
 {
     return new Promise((resolve, reject)=>
@@ -348,6 +430,11 @@ function writeFile(path, data)
     });
 }
 
+/**
+ *  reads the passed in file path.
+ *  basically just a promise translation
+ *  for the fs function.
+ */
 function readFile(path)
 {
     return new Promise((resolve, reject)=>
