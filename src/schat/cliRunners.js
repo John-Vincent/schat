@@ -317,22 +317,22 @@ CLIRunners.set("--help", (input, cli) =>
             twoSpaces + "Default Usage: Start a chat with another user. Example 'schat start-chat IP'.\n" + 
                 threeSpaces + "Here, IP is the IP of the user you wish to chat with.\n" + 
                 threeSpaces + "By default, this will try and create an schat connection with \n" + 
-                threeSpaces + "the IP on the default port 4567\n" + 
+                threeSpaces + "the IP on the default port 4567.\n" + 
                 threeSpaces + "To change the port of the user you wish to connect to just specify\n" + 
                 threeSpaces + "it after a colon, like this, IP:PORT. Example: 'schat start-chat IP:PORT'\n" + 
             twoSpaces + "Specify the port you wish to serve schat on\n" + 
-                threeSpaces + "--port [PORT]\n" +
+                threeSpaces + "'--port [PORT]'\n" +
                 threeSpaces + "  Example: 'schat start-chat 127.0.0.1 --port 4567'\n" +     
             twoSpaces + "Specify keys to use for encryption: \n" +
-                threeSpaces + "--priv [FILEPATH] (your private key)\n" + 
-                threeSpaces + "--pub [FILEPATH] (your public key)\n" + 
-                threeSpaces + "--fpub [FILEPATH] (specify public key user you which to connect to)\n" + 
-                threeSpaces + "  Example: 'schat start-chat IP --priv ~/.ssh/id_rsa --pub ~/.ssh/id_rsa.pub --fpub ~/.ssh/alices_key.pub'\n" + 
+                threeSpaces + "'--priv [FILEPATH]' (your private key)\n" + 
+                threeSpaces + "'--pub [FILEPATH]' (your public key)\n" + 
+                threeSpaces + "'--fpub [FILEPATH]' (specify public key for user you which to connect to)\n" + 
+                threeSpaces + "  Example: 'schat start-chat IP --priv ~/.schat/id_rsa --pub ~/.schat/id_rsa.pub --fpub ~/.schat/alices_key.pub'\n" + 
             twoSpaces + "Download foreign public key from chatting partner for future use\n" + 
-                threeSpaces + "--save-fpub [FILEPATH]\n" + 
+                threeSpaces + "'--save-fpub [FILEPATH]'\n" + 
                 threeSpaces + "  Example: 'schat start-chat IP --save-fpub ./pathToSaveTo'\n" +
             twoSpaces + "Use temporary key pair\n" + 
-                threeSpaces + "--temp-keys\n" + 
+                threeSpaces + "'--temp-keys'\n" + 
                 threeSpaces + "  Example: 'schat start-chat IP --temp-keys'"
     );
     
