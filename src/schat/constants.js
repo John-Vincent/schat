@@ -17,7 +17,20 @@ const init_packet_types = {
     key: 'key'
 }
 
+const default_port = 4567;
+
+const start_chat_flags = {
+    localPort : "--port",
+    privateKey : "--priv",
+    publicKey : "--pub",
+    foriegnPubKey : "--fpub",
+    saveFPub : "--save-fpub",
+    tempKeys : "--temp-keys"
+}
+
 module.exports = {
     error_codes: error_codes,
-    init_packet_types: init_packet_types
+    init_packet_types: init_packet_types,
+    default_port : default_port,
+    start_chat_flags : start_chat_flags
 }

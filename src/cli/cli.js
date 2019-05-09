@@ -43,6 +43,8 @@ class CLI
      * @author    Matt Bechtel | mbechtel@iastate.edu 
      * @date      2019-04-06 20:27:16 
      * @param     {String} input 
+     * @param     {Boolean} split | true tells method it needs to split input by space, false tells it the input
+     *                            | has already been split
      * @return    {Boolean}    | true if runner exists, false if not
      */
     parseAndRun(input, split)

@@ -1,6 +1,7 @@
 const logger = require('logger');
 const network = require('./network');
 const encryption = require('./encryption');
+const Constants = require('./constants');
 
 const CLIRunners = new Map();
 
@@ -22,37 +23,196 @@ CLIRunners.set("start-chat", (input, cli) =>
         return;
     }
 
-    let address = input[1].split(':');
-    let remotePort = address[1] != undefined ? address[1] : 4567;
-    let localPort = 4567;
-
     let receptionCallback = (msg) =>
     {
         cli.print("\nMessage from peer: " + msg);
-    }
+    };
 
-    if(input[2] == "--port" && input[3])
+    let closeCallback = () => 
     {
-        localPort = parseInt(input[3]);
-    }
+        cli.print('Peer disconnected...\nGoodbye.'); 
+        process.exit(0);
+    };
 
-    var options = {local_port: localPort, remote_port: remotePort, remote_address: address[0], callback: receptionCallback, closeCallback: ()=>{console.log('Peer disconnected...\nGoodbye.'); process.exit(0)}};
-
-    //This needs to be changed to load in existing keys, that should be done via 
-    //scanning the ~/.schat directory for them 
-    encryption.generateKeys()
-        .then(()=>
+    getStartChatOptions(input.slice(1, input.length))
+        .then((startChatOptions) =>
         {
-            return network.open(options).then(() => 
+            var networkOptions = 
             {
-                cli.start("send-message");
-            });
-        })
-        .catch(cli.printError);
+                local_port: startChatOptions.localPort, 
+                remote_port: startChatOptions.remotePort, 
+                remote_address: startChatOptions.address, 
+                callback: receptionCallback, 
+                closeCallback: closeCallback
+            };
 
-    //here should be the logic for adding a user to the chat
-    cli.print("Adding " + address[0] + ":" + remotePort + " to chat");
+            let keys =
+            {
+                priv : startChatOptions.privateKey,
+                pub : startChatOptions.publicKey,
+                fpub : startChatOptions.foreignPubKey
+            };
+        
+            if(keys.priv && !keys.pub || !keys.priv && keys.pub)
+            {
+                cli.printError("Must provide private and public key as a pair, if provided");    
+                return;
+            }
+
+            if(keys.fpub && startChatOptions.saveFPub)
+            {
+                cli.printError("Cannot download a foreign key with one already specified");
+                return;
+            }
+
+            if(startChatOptions.saveFPub)
+            {
+                Promise.resolve(encryption.saveKeys({fpub : startChatOptions.saveFPub}));
+            }
+
+            if(startChatOptions.tempKeys && keys.fpub)
+            {
+                cli.print("Using temp local keys, with a set foriegn key");
+                keys.priv = undefined;
+                keys.pub = undefined;
+
+                encryption.setKeys(keys)
+                    .then(() =>
+                    {
+                        return encryption.generateKeys()
+                            .then(() =>
+                            {
+                                return network.open(networkOptions)
+                                    .then(() => 
+                                    {
+                                        cli.start("send-message");
+                                    });
+                            });
+                    })
+                    .catch(cli.printError);
+            }
+
+            if(startChatOptions.tempKeys && !keys.fpub)
+            {
+                cli.print("Starting chat using temporary keys");
+
+                encryption.generateKeys()
+                    .then(() =>
+                    {
+                        return network.open(networkOptions)
+                            .then(() => 
+                            {
+                                cli.start("send-message");
+                            });
+                    })
+            }
+
+            if(!startChatOptions.tempKeys)
+            {
+                if(keys.priv && keys.pub)
+                {
+                    cli.print("Using specified key pair, private: " + keys.priv + ", public: " + keys.pub);
+                }
+
+                if(keys.fpub)
+                {
+                    cli.print("Using foriegn key, " + keys.fpub);
+                }
+
+                if(!keys.priv && !keys.pub)
+                {
+                    cli.print("Using default key pair in ~/.schat");
+                }
+
+                encryption.setKeys(keys)
+                    .then(() =>
+                    {
+                        return network.open(networkOptions)
+                            .then(() => 
+                            {
+                                cli.start("send-message");
+                            });
+                    })
+                    .catch((err) =>
+                    {
+                        if(err == Constants.error_codes.LOCAL_KEY_ERROR)
+                        {
+                            cli.printError("No key pair in ~/.schat, run 'schat key-gen' or provide keys with --priv and --pub (see --help)");
+                        }
+                    });
+            }
+        
+            //here should be the logic for adding a user to the chat
+            cli.print("Adding " + startChatOptions.address + ":" + startChatOptions.remotePort + " to chat");
+        })
+        .catch((err) =>
+        {
+            logger.error(err, __filename);
+            cli.printError(err);
+        });    
 });
+
+const getStartChatOptions = (input) =>
+{
+    return new Promise((resolve, reject) => 
+    {
+        const options = 
+        {
+            address : undefined,
+            remotePort : undefined,
+            localPort : undefined,
+            privateKey : undefined,
+            publicKey : undefined,
+            foriegnPubKey : undefined,
+            saveFPub : undefined,
+            tempKeys : undefined
+        };
+    
+        if(input.length == 0) return;  
+    
+        let addressArg = input[0].split(':');
+        options.remotePort = addressArg[1] != undefined ? addressArg[1] : Constants.default_port;
+        options.address = addressArg[0];
+
+        let localPortIndex = input.indexOf(Constants.start_chat_flags.localPort);
+        let privateKeyIndex = input.indexOf(Constants.start_chat_flags.privateKey);
+        let publicKeyIndex = input.indexOf(Constants.start_chat_flags.publicKey);
+        let foreignPubKeyIndex = input.indexOf(Constants.start_chat_flags.foreignPubKey);    
+        let saveFPubIndex = input.indexOf(Constants.start_chat_flags.saveFPub);
+    
+        if(localPortIndex != -1 && input[localPortIndex + 1])
+        {
+            options.localPort = parseInt(input[localPortIndex + 1]);
+        }
+    
+        if(privateKeyIndex != -1 && input[privateKeyIndex + 1])
+        {
+            options.privateKey = input[privateKeyIndex + 1];
+        }
+    
+        if(publicKeyIndex != -1 && input[publicKeyIndex + 1])
+        {
+            options.publicKey = input[publicKeyIndex + 1];
+        }
+    
+        if(foreignPubKeyIndex != -1 && input[foreignPubKeyIndex + 1])
+        {
+            options.foreignPubKey = input[foreignPubKeyIndex + 1];
+        }
+    
+        if(saveFPubIndex != -1 && input[saveFPubIndex + 1])
+        {
+            options.saveFPub = input[saveFPubIndex + 1];
+        }
+
+        if(input.includes(Constants.start_chat_flags.tempKeys))
+        {
+            options.tempKeys = true;
+        }
+        
+        resolve(options);
+    });    
+};
 
 /** 
  * Runner to send a message, this will passed to the cli as the runner to use when sending a message
@@ -62,70 +222,16 @@ CLIRunners.set("start-chat", (input, cli) =>
  * @param     {CLI} cli | an instance of cli to be used
  */
 CLIRunners.set("send-message", (input, cli) =>
-{
-    network.send(input);
-});
-
-/** 
- * Runner for the 'keys' commands. This runner will dispatch to the correct runner for the given key functionality
- * @author    Matt Bechtel | mbechtel@iastate.edu 
- * @date      2019-04-27 22:23:33    
- * @param     {String[]} input | parsed input, place into string[]
- * @param     {CLI} cli | an instance of cli to be used
- */
-CLIRunners.set("keys", (input, cli) =>
-{
-    let option = input.slice(1, input.length);
-
-    if(input.length == 0)
+{   
+    if(!cli.shell)
     {
-        cli.printError("call to keys must be provided with a mode, generate or import");
+        let errMsg = "Cannot send message without an active connection";
+        cli.printError(errMsg);
         return;
     }
-    else if(option) 
-    {
-        cli.parseAndRun(option);
-    }    
+
+    network.send(input);
 });
-
-/** 
- * Runner for importing keys passed by the user as filepaths.
- * This runner will look for flags --priv, --pub, --fpub, with the file paths following the flags (ex: --priv ~/.ssh/id_rsa)
- * @author    Matt Bechtel | mbechtel@iastate.edu 
- * @date      2019-04-27 22:24:30 
- * @param     {String[]} input | parsed input, place into string[]
- * @param     {CLI} cli | an instance of cli to be used
- */
-CLIRunners.set("import", (input, cli) =>
-{
-    let keys = {};
-
-    if(input.length < 2)
-    {
-        cli.printError("A filepath must be providied to the import commnad");
-    }
-    
-    for(let i = 2; i < input.length; i++)  
-    {
-        if(input[i] == "--priv" && input[i + 1])
-        {
-            keys.priv = input[i + 1];
-        }
-        else if(input[i] == "--pub" && input[i + 1])
-        {
-            keys.pub = input[i + 1];
-        }
-        else if(input[i] == "--fpub" && input[i + 1])
-        {
-            keys.fpub = input[i + 1];
-        }
-    }
-
-    if(keys.pub || keys.priv || keys.fpub)
-    {
-        encryption.setKeys(keys);
-    }
-})
 
 /** 
  * Runner to generate new keys and save them to the schat directory
@@ -134,10 +240,12 @@ CLIRunners.set("import", (input, cli) =>
  * @param     {String[]} input | parsed input, place into string[]
  * @param     {CLI} cli | an instance of cli to be used
  */
-CLIRunners.set("generate", (input, cli) => 
+CLIRunners.set("key-gen", (input, cli) => 
 {
-    cli.print("Generating keys");
-    Promise.resolve(encryption.generateKeys());
+    //TODO
+    logger.info("Starting key pair generation", __filename);
+    cli.print("Generating key pair and storing it in ~/.schat/");
+    Promise.resolve(encryption.generateKeysAndSave());
 });
 
 /** 
@@ -184,7 +292,10 @@ CLIRunners.set("--help", (input, cli) =>
                 threeSpaces + "  Example: 'schat start-chat IP --priv ~/.ssh/id_rsa --pub ~/.ssh/id_rsa.pub --fpub ~/.ssh/alices_key.pub'\n" + 
             twoSpaces + "Download foreign public key from chatting partner for future use\n" + 
                 threeSpaces + "--save-fpub [FILEPATH]\n" + 
-                threeSpaces + "  Example: 'schat start-chat IP --save-fpub ./pathToSaveTo'\n"
+                threeSpaces + "  Example: 'schat start-chat IP --save-fpub ./pathToSaveTo'\n" +
+            twoSpaces + "Use temporary key pair\n" + 
+                threeSpaces + "--temp-keys\n" + 
+                threeSpaces + "  Example: 'schat start-chat IP --temp-keys"
     );
     
 });
