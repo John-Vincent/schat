@@ -24,28 +24,28 @@ encryption.setKeys= function(keys)
         keys = {};
 
     if(keys.priv)
-        priv = path.resolve(priv);
+        keys.priv = path.resolve(keys.priv);
     else
-        priv = private_key_file;
+        keys.priv = private_key_file;
 
     if(keys.pub)
-        pub = path.resolve(pub);
+        keys.pub = path.resolve(keys.pub);
     else
-        pub = public_key_file;
+        keys.pub = public_key_file;
 
     if(keys.fpub)
-        fpub = path.resolve(fpub);
+        keys.fpub = path.resolve(keys.fpub);
     else
-        fpub = foreign_key_file;
+        keys.fpub = foreign_key_file;
 
     dir_check = check_directory();
 
     local = dir_check
-    .then(initPrivateKey(priv))
-    .then(initPublicKey(pub));
+    .then(initPrivateKey(keys.priv))
+    .then(initPublicKey(keys.pub));
 
     foreign = dir_check
-    .then(initForeignKeys(fpub));
+    .then(initForeignKeys(keys.fpub));
 
     return Promise.all([local, foreign]);
 }
@@ -108,13 +108,13 @@ encryption.saveKeys = (paths) =>
         save_foreign = true;
     }
 
-    return checkDirectory().then(()=>
+    return check_directory().then(()=>
     {
         var promises = [];
         if(pub)
-            promises.push(writeFile(pub, public_key));
+            promises.push(writeFile(pub, public_key.export({type:'pkcs1', format: 'pem'})));
         if(priv)
-            promises.push(writeFile(priv, private_key));
+            promises.push(writeFile(priv, private_key.export({type:'pkcs1', format: 'pem'})));
         return Promise.all(promises);
             
     }).catch((err)=>
@@ -134,7 +134,7 @@ encryption.setForeignKey = function(keyString)
     foreign_set = true;
     if(save_foreign)
     {
-        writeFile(foreign_key_file, foreign_key).catch((err)=>
+        writeFile(foreign_key_file, foreign_key.export({type:'pkcs1', format: 'pem'})).catch((err)=>
         {
             console.error("Error saving Foreign Key file: ", err);
         });
@@ -299,8 +299,10 @@ function initPrivateKey(path)
 
 function initPublicKey(path)
 {
-    return ()=>
+    return (err)=>
     {
+        if(err)
+            return err;
         return readFile(path)
         .then( res =>
         {
