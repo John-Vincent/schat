@@ -7,12 +7,14 @@ const encryption = {};
 
 const key_length = 32;
 var schat_dir = path.resolve(os.homedir(), '.schat');
-var private_key = path.join(schat_dir, '/priv_key');
-var public_key = path.join(schat_dir, '/pub_key');
-var foreign_key = path.join(schat_dir, '/foriegn_keys');
+var private_key_file = path.join(schat_dir, '/priv_key');
+var public_key_file = path.join(schat_dir, '/pub_key');
+var foreign_key_file = path.join(schat_dir, '/foriegn_keys');
+var private_key, public_key, foreign_key;
 var session_key = '';
 var cipher, decipher;
 var foreign_set = false;
+var save_foreign = false;
 var session_set = false;
 
 encryption.setKeys= function(keys)
@@ -24,17 +26,17 @@ encryption.setKeys= function(keys)
     if(keys.priv)
         priv = path.resolve(priv);
     else
-        priv = private_key;
+        priv = private_key_file;
 
     if(keys.pub)
         pub = path.resolve(pub);
     else
-        pub = public_key;
+        pub = public_key_file;
 
     if(keys.fpub)
         fpub = path.resolve(fpub);
     else
-        fpub = foreign_key;
+        fpub = foreign_key_file;
 
     dir_check = check_directory();
 
@@ -43,7 +45,7 @@ encryption.setKeys= function(keys)
     .then(initPublicKey(pub));
 
     foreign = dir_check
-    .then(initForeignKeys(fpub, keys.profile));
+    .then(initForeignKeys(fpub));
 
     return Promise.all([local, foreign]);
 }
@@ -66,21 +68,59 @@ encryption.generateKeys = function()
     });
 }
 
-encryption.generateKeysAndSave = () =>
+encryption.generateKeysAndSave = (paths) =>
 {
+    if(!paths)
+        paths = {};
+    if(!paths.priv)
+        paths.priv = private_key_file;
+    if(!paths.pub)
+        paths.pub = public_key_file;
+
     return new Promise((resolve, reject) =>
     {
         return encryption.generateKeys()
             .then(() =>
             {
-                return encryption.saveKeys();
+                return encryption.saveKeys(paths);
             });
     });
 }
 
-encryption.saveKeys = () =>
+encryption.saveKeys = (paths) =>
 {
-    //TODO
+    var priv, pub, fpub;
+    if(paths.priv === true)
+        priv = private_key_file;
+    else if (paths.priv)
+        priv = path.resolve(paths.priv);
+
+    if(paths.pub === true)
+        pub = public_key_file;
+    else if(paths.pub)
+        pub = path.resolve(paths.pub);
+
+    if(paths.fpub === true)
+        save_foreign = true;
+    else if(fpub)
+    {
+        foreign_key_file = path.resolve(paths.fpub);
+        save_foreign = true;
+    }
+
+    return checkDirectory().then(()=>
+    {
+        var promises = [];
+        if(pub)
+            promises.push(writeFile(pub, public_key));
+        if(priv)
+            promises.push(writeFile(priv, private_key));
+        return Promise.all(promises);
+            
+    }).catch((err)=>
+    {
+        console.error("Error saving key files: " + err);
+    });
 }
 
 encryption.isSessionSet = function()
@@ -92,6 +132,13 @@ encryption.setForeignKey = function(keyString)
 {
     foreign_key = crypto.createPublicKey(keyString);
     foreign_set = true;
+    if(save_foreign)
+    {
+        writeFile(foreign_key_file, foreign_key).catch((err)=>
+        {
+            console.error("Error saving Foreign Key file: ", err);
+        });
+    }
 }
 
 encryption.isForeignSet = function()
@@ -267,23 +314,14 @@ function initPublicKey(path)
     }
 }
 
-function initForeignKeys(path, profile)
+function initForeignKeys(path)
 {
     return ()=>
     {
         return readFile(path)
         .then( res =>
         {
-            if(profile)
-            {
-                var keys = JSON.parse(res);
-                if(keys[profile])
-                    foreign_key = crypto.createPublicKey(keys[profile]);
-                else
-                    throw 'no key found for profile: ' + profile;
-            }
-            else
-                foreign_key = crypto.createPublicKey(res); 
+            foreign_key = crypto.createPublicKey(res); 
             foreign_set = true;
         })
         .catch(err=>
@@ -292,6 +330,20 @@ function initForeignKeys(path, profile)
             return err;
         });
     }
+}
+
+function writeFile(path, data)
+{
+    return new Promise((resolve, reject)=>
+    {
+        fs.writeFile(path, data, (err)=>
+        {
+            if(err)
+                reject(err);
+            else
+                resolve();
+        });
+    });
 }
 
 function readFile(path)
