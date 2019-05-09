@@ -1,3 +1,7 @@
+/*******************
+ * SCHAT CONSTANTS *
+ *******************/     
+
 const error_codes = {
     DIRECTORY_ERROR: 100,
     LOCAL_KEY_ERROR: 101,

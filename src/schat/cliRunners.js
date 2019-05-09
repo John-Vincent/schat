@@ -6,8 +6,8 @@ const Constants = require('./constants');
 const CLIRunners = new Map();
 
 /** 
- * Starts chat with given IP:PORT
- * Runner for 'start-chat'. Starts an schat connection with the given IP and port
+ * Starts chat with given options.
+ * Runner for 'start-chat'. Starts an schat connection with the given options.
  * @author    Matt Bechtel | mbechtel@iastate.edu 
  * @date      2019-04-06 21:28:31 
  * @param     {String[]} input | parsed input, place into string[]
@@ -23,20 +23,24 @@ CLIRunners.set("start-chat", (input, cli) =>
         return;
     }
 
+    //callback when message is received
     let receptionCallback = (msg) =>
     {
         cli.print("\nMessage from peer: " + msg);
     };
 
+    //callback when connection is closed
     let closeCallback = () => 
     {
         cli.print('Peer disconnected...\nGoodbye.'); 
         process.exit(0);
     };
 
+    //get the start-chat options from the input, then perform accordingly
     getStartChatOptions(input.slice(1, input.length))
         .then((startChatOptions) =>
         {
+            //options to set up the network
             var networkOptions = 
             {
                 local_port: startChatOptions.localPort, 
@@ -46,6 +50,7 @@ CLIRunners.set("start-chat", (input, cli) =>
                 closeCallback: closeCallback
             };
 
+            //keys, provided by user as options
             let keys =
             {
                 priv : startChatOptions.privateKey,
@@ -53,29 +58,34 @@ CLIRunners.set("start-chat", (input, cli) =>
                 fpub : startChatOptions.foreignPubKey
             };
         
+            //make sure their not trying to just use one key, it must be a pair 
             if(keys.priv && !keys.pub || !keys.priv && keys.pub)
             {
                 cli.printError("Must provide private and public key as a pair, if provided");    
                 return;
             }
 
+            //check that their not trying to use a fpub and save that fpub (redundant)
             if(keys.fpub && startChatOptions.saveFPub)
             {
                 cli.printError("Cannot download a foreign key with one already specified");
                 return;
             }
 
+            //set the forign public key up for saving when connection is closed
             if(startChatOptions.saveFPub)
             {
                 Promise.resolve(encryption.saveKeys({fpub : startChatOptions.saveFPub}));
             }
 
+            //user specifies temp keys and a foreign public key
             if(startChatOptions.tempKeys && keys.fpub)
             {
                 cli.print("Using temp local keys, with a set foriegn key");
                 keys.priv = undefined;
                 keys.pub = undefined;
 
+                //set the given keys, then reset them using generate keys
                 encryption.setKeys(keys)
                     .then(() =>
                     {
@@ -92,6 +102,7 @@ CLIRunners.set("start-chat", (input, cli) =>
                     .catch(cli.printError);
             }
 
+            //user specifies temp keys and does not provide an fpub, generate temp keys and try and connect
             if(startChatOptions.tempKeys && !keys.fpub)
             {
                 cli.print("Starting chat using temporary keys");
@@ -107,23 +118,28 @@ CLIRunners.set("start-chat", (input, cli) =>
                     })
             }
 
+            //user did not specify temp keys, (default behavior)
             if(!startChatOptions.tempKeys)
             {
+                //key pair was provided 
                 if(keys.priv && keys.pub)
                 {
                     cli.print("Using specified key pair, private: " + keys.priv + ", public: " + keys.pub);
                 }
 
+                //foreign key was provided
                 if(keys.fpub)
                 {
                     cli.print("Using foriegn key, " + keys.fpub);
                 }
 
+                //no key pair was provided, use default keys
                 if(!keys.priv && !keys.pub)
                 {
                     cli.print("Using default key pair in ~/.schat");
                 }
 
+                //set given keys and try and connect
                 encryption.setKeys(keys)
                     .then((err) =>
                     {
@@ -159,10 +175,19 @@ CLIRunners.set("start-chat", (input, cli) =>
         });    
 });
 
+/** 
+ * Helper method to get the start-chat options out of the user input. Returns promise that
+ * when resolve gives an 'startChatOptions' object. 
+ * @author    Matt Bechtel | mbechtel@iastate.edu 
+ * @date      2019-05-09 00:47:24 
+ * @param     {String[]} input | parsed input, place into string[]
+ * @return    {Promise} 
+ */
 const getStartChatOptions = (input) =>
 {
     return new Promise((resolve, reject) => 
     {
+        //set up empty options object
         const options = 
         {
             address : undefined,
@@ -175,18 +200,22 @@ const getStartChatOptions = (input) =>
             tempKeys : undefined
         };
     
-        if(input.length == 0) return;  
-    
+        //no options, return
+        if(input.length == 0) resolve();  
+
+        //split address argument to get the IP and PORT
         let addressArg = input[0].split(':');
         options.remotePort = addressArg[1] != undefined ? addressArg[1] : Constants.default_port;
         options.address = addressArg[0];
 
+        //get the indecies of all of the flags possible (set in the constants file)
         let localPortIndex = input.indexOf(Constants.start_chat_flags.localPort);
         let privateKeyIndex = input.indexOf(Constants.start_chat_flags.privateKey);
         let publicKeyIndex = input.indexOf(Constants.start_chat_flags.publicKey);
         let foreignPubKeyIndex = input.indexOf(Constants.start_chat_flags.foreignPubKey);    
         let saveFPubIndex = input.indexOf(Constants.start_chat_flags.saveFPub);
     
+        //if cases to set the options values from the input
         if(localPortIndex != -1 && input[localPortIndex + 1])
         {
             options.localPort = parseInt(input[localPortIndex + 1]);
@@ -274,13 +303,15 @@ CLIRunners.set("--help", (input, cli) =>
     cli.print("<schat help>\n" + 
         "commands:\n" + 
         space + "key-gen\n" + 
-            twoSpaces + "By default schat will generate a new key pair for every chat session.\n" +
-            twoSpaces + "To use the same key pair every time, this command should be used.\n" +
-            twoSpaces + "This command generates a private-public RSA key pair and writes\n" +
-            twoSpaces + "it to the ~/.schat directory,for usage in future schat chatting sessions. \n" + 
-            twoSpaces + "If previously ran, this will replace the old key pair that was generated.\n" + 
+            twoSpaces + "By default schat will use the set of keys 'priv_key' and 'pub_key'\n" +
+            twoSpaces + "in the ~/.schat directory. If this key pair does not exist you must run this command\n" + 
+            twoSpaces + "to generate the private-public RSA key pair and write it\n" +
+            twoSpaces + "to the ~/.schat directory for usage in future schat chatting sessions. \n" + 
+            twoSpaces + "If previously ran, this will replace the old key pair that was generated,\n" +
+            twoSpaces + "meaning that if you want to save generated keys elsewhere, you must move them yourself.\n" + 
             twoSpaces + "When a chat is started, without a key pair specified (default usage), schat will use\n" +
-            twoSpaces + "the key pair generated by this command, i.e the key pair stored in ~/.schat. \n" + 
+            twoSpaces + "the key pair generated by this command, i.e the key pair stored in ~/.schat. \n" +
+            twoSpaces + "***If you wish to use temporary keys, please use the flag '--temp-keys'\n" +  
             threeSpaces + "Example: 'schat key-gen'\n" + 
         space + "start-chat\n" + 
             twoSpaces + "Default Usage: Start a chat with another user. Example 'schat start-chat IP'.\n" + 
