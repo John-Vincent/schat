@@ -102,7 +102,7 @@ encryption.saveKeys = (paths) =>
 
     if(paths.fpub === true)
         save_foreign = true;
-    else if(fpub)
+    else if(paths.fpub)
     {
         foreign_key_file = path.resolve(paths.fpub);
         save_foreign = true;

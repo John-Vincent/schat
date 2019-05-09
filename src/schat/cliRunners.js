@@ -128,9 +128,13 @@ CLIRunners.set("start-chat", (input, cli) =>
                     .then((err) =>
                     {
                         if(err && err[0])
+                        {
                             cli.printError("No key private or public keys found, run 'schat key-gen' or provide keys with --priv and --pub (see --help)");
+                        }
                         else if(keys.fpub && err && err[0])
+                        {
                             cli.printError("Failed to find foreign public key");
+                        }
                         else
                         {
                             return network.open(networkOptions)
@@ -139,21 +143,13 @@ CLIRunners.set("start-chat", (input, cli) =>
                                     cli.start("send-message");
                                 });
                         }
-                    }).catch((err)=>
+                    })
+                    .catch((err)=>
                     {
                         cli.printError(err);
                     });
-                    //.catch((err) =>
-                    //{
-                    //    if(err[0] && err[0].code == Constants.error_codes.LOCAL_KEY_ERROR)
-                    //    {
-                    //        cli.printError("No key pair in ~/.schat, run 'schat key-gen' or provide keys with --priv and --pub (see --help)");
-                    //    }
-                    //    console.log(err);
-                    //});
             }
         
-            //here should be the logic for adding a user to the chat
             cli.print("Adding " + startChatOptions.address + ":" + startChatOptions.remotePort + " to chat");
         })
         .catch((err) =>
@@ -306,7 +302,7 @@ CLIRunners.set("--help", (input, cli) =>
                 threeSpaces + "  Example: 'schat start-chat IP --save-fpub ./pathToSaveTo'\n" +
             twoSpaces + "Use temporary key pair\n" + 
                 threeSpaces + "--temp-keys\n" + 
-                threeSpaces + "  Example: 'schat start-chat IP --temp-keys"
+                threeSpaces + "  Example: 'schat start-chat IP --temp-keys'"
     );
     
 });

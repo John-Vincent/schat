@@ -23,7 +23,7 @@ const start_chat_flags = {
     localPort : "--port",
     privateKey : "--priv",
     publicKey : "--pub",
-    foriegnPubKey : "--fpub",
+    foreignPubKey : "--fpub",
     saveFPub : "--save-fpub",
     tempKeys : "--temp-keys"
 }
