@@ -108,6 +108,8 @@ class CLI
      * Kicks off the cli. Writes prompt to stdout, and listens on stdin for user input.
      * @author    Matt Bechtel | mbechtel@iastate.edu 
      * @date      2019-04-06 21:34:24    
+     * @param     {String} sendMessageRunnerName | the key that the runner for sending messages is mapped
+     *                                             to in this instance of CLI. 
      */
     start(sendMessageRunnerName)
     {
@@ -120,13 +122,26 @@ class CLI
         this.io.setPrompt(this.prompt);
         this.io.prompt();
         
+       /* 
+        * This is the event listener for user input. Checks if the input includes '--help', 
+        * if it does it calls the runner mapped to --help. If the input does not contain '--help'
+        * then it is assumed it is a message to be sent to the other user, thus this method
+        * will concatenate the sendMessage runner's name to the beginning of the line
+        * and then 'parse and run' the command. This results in the input being 
+        * sent to the runner used to send messages. 
+        */
         this.io.on('line', (line) => 
         {
             logger.info("Read input: " + line, __filename);
 
-            if(line != '--help' && sendMessageRunnerName)
+            if(!line.includes('--help') && sendMessageRunnerName)
             {
                 line = sendMessageRunnerName + " " + line;
+            }
+
+            if(line.includes('--help'))
+            {
+                line = 'help';
             }
 
             this.parseAndRun(line, false);
